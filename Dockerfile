@@ -1,4 +1,4 @@
-FROM phusion/baseimage:0.11
+FROM ubuntu:18.04
 MAINTAINER pducharme@me.com
 
 # Version
@@ -16,9 +16,12 @@ ENV PUID="99" PGID="100" UMASK="002"
 ADD unifi-video.patch /unifi-video.patch
 ADD run.sh /run.sh
 
+RUN apt-get update && apt-get install -y gnupg psmisc lsb-release libcap2 wget
+
+RUN wget -qO - https://www.mongodb.org/static/pgp/server-4.0.asc | apt-key add -
+
 # Add mongodb repo, key, update and install needed packages
-RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 9DA31620334BD75D9DCB49F368818C72E52529D4 && \
-  echo "deb [ arch=amd64,arm64 ] http://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/4.0 multiverse" > /etc/apt/sources.list.d/mongodb-org-4.0.list && \
+RUN echo "deb [ arch=amd64,arm64 ] http://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/4.0 multiverse" > /etc/apt/sources.list.d/mongodb-org-4.0.list && \
   apt-get update && \
   apt-get install -y apt-utils && \
   apt-get upgrade -y -o Dpkg::Options::="--force-confold" && \
@@ -26,7 +29,7 @@ RUN apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv 9DA31620334BD75
     jsvc \
     jq \
     moreutils \
-    openjdk-8-jre-headless=8u162-b12-1 \
+    openjdk-8-jre-headless \
     patch \
     sudo \
     tzdata \
@@ -44,13 +47,7 @@ RUN wget -q -O unifi-video.deb https://dl.ubnt.com/firmwares/ufv/v${version}/uni
   rm /unifi-video.patch && \
   chmod 755 /run.sh
 
-# Patch log4j vuln
-RUN wget -q -O apache-log4j-2.17.0-bin.tar.gz https://dlcdn.apache.org/logging/log4j/2.17.0/apache-log4j-2.17.0-bin.tar.gz && \
-  tar -zxf apache-log4j-2.17.0-bin.tar.gz apache-log4j-2.17.0-bin/log4j-api-2.17.0.jar apache-log4j-2.17.0-bin/log4j-core-2.17.0.jar apache-log4j-2.17.0-bin/log4j-slf4j-impl-2.17.0.jar && \
-  install --backup -m 400 -o 1003 -g 104 -T apache-log4j-2.17.0-bin/log4j-api-2.17.0.jar /usr/lib/unifi-video/lib/log4j-api-2.1.jar && \
-  install --backup -m 400 -o 1003 -g 104 -T apache-log4j-2.17.0-bin/log4j-core-2.17.0.jar /usr/lib/unifi-video/lib/log4j-core-2.1.jar && \
-  install --backup -m 400 -o 1003 -g 104 -T apache-log4j-2.17.0-bin/log4j-slf4j-impl-2.17.0.jar /usr/lib/unifi-video/lib/log4j-slf4j-impl-2.1.jar && \
-  rm -fr /apache-log4j-2.17.0-bin.tar.gz /apache-log4j-2.17.0-bin
+RUN apt install liblog4j2-java -y
 
 # RTMP, RTMPS & RTSP, Inbound Camera Streams & Camera Management (NVR Side), UVC-Micro Talkback (Camera Side)
 # HTTP & HTTPS Web UI + API, Video over HTTP & HTTPS
